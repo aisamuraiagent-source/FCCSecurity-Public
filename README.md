@@ -36,12 +36,26 @@ http://127.0.0.1:4173/
 - `docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.md`
 - `docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.html`
 
+## Controles de segurança
+
+- `AGENTS.md`: regras operacionais defensivas para agentes Codex neste repositório.
+- `SECURITY.md`: política pública de escopo e reporte seguro.
+- `SECURITY_SCOPE.md`: ativos em escopo e fora de escopo.
+- `SECURITY_POLICY.md`: política defensiva central e critérios de validação.
+- `SAFETY_TEST_PLAN.md`: plano de checks propostos, sem execução automática.
+- `SECURITY_FINDINGS.md`: achados e status de mitigação.
+- `REMEDIATION_BACKLOG.md`: backlog de correções e controles pendentes.
+- `RUNTIME_GUARDRAILS.yaml`: limites de runtime e gates humanos.
+- `PATCH_VALIDATION_REPORT.md`: validação do patch documental.
+- `AUDIT_EVIDENCE_PACK.md`: pacote de evidência auditável e sanitizada.
+
 ## Disclaimer público
 
 FCC Security é um projeto local-first defensivo e independente de autor.
 Não há afiliação, endosso, patrocínio ou parceria com OpenAI.
 Referências a Codex/Codex Security descrevem apenas ferramentas e fluxo de revisão usados no desenvolvimento e validação interna.
 Não há escaneamento externo automatizado, exploração, abuso de credenciais, malware ou monitoramento operacional.
+Os artefatos de segurança deste repositório são evidência documental e não representam certificação, auditoria externa formal ou garantia de ausência de vulnerabilidades.
 
 ## Limites
 
