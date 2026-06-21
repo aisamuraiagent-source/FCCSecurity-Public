@@ -38,16 +38,19 @@ http://127.0.0.1:4173/
 
 ## Controles de segurança
 
+O pacote canônico de governança fica em `docs/`. Arquivos equivalentes na raiz são espelhos de compatibilidade para GitHub/PR review.
+
 - `AGENTS.md`: regras operacionais defensivas para agentes Codex neste repositório.
 - `SECURITY.md`: política pública de escopo e reporte seguro.
-- `SECURITY_SCOPE.md`: ativos em escopo e fora de escopo.
-- `SECURITY_POLICY.md`: política defensiva central e critérios de validação.
-- `SAFETY_TEST_PLAN.md`: plano de checks propostos, sem execução automática.
-- `SECURITY_FINDINGS.md`: achados e status de mitigação.
-- `REMEDIATION_BACKLOG.md`: backlog de correções e controles pendentes.
-- `RUNTIME_GUARDRAILS.yaml`: limites de runtime e gates humanos.
-- `PATCH_VALIDATION_REPORT.md`: validação do patch documental.
-- `AUDIT_EVIDENCE_PACK.md`: pacote de evidência auditável e sanitizada.
+- `docs/SECURITY_SCOPE.md`: ativos em escopo e fora de escopo.
+- `docs/SECURITY_POLICY.md`: política defensiva central e critérios de validação.
+- `docs/SAFETY_TEST_PLAN.md`: plano de checks propostos, sem execução automática.
+- `docs/SAFE_COMMAND_ALLOWLIST.md`: comandos locais permitidos com redaction de remotes.
+- `docs/SECURITY_FINDINGS.md`: achados e status de mitigação.
+- `docs/REMEDIATION_BACKLOG.md`: backlog de correções e controles pendentes.
+- `docs/RUNTIME_GUARDRAILS.yaml`: limites de runtime e gates humanos.
+- `docs/PATCH_VALIDATION_REPORT.md`: validação do patch documental.
+- `docs/AUDIT_EVIDENCE_PACK.md`: pacote de evidência auditável e sanitizada.
 
 ## Disclaimer público
 
