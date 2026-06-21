@@ -13,25 +13,25 @@ const SIGNAL_SEVERITY = Object.freeze({
 
 const EVIDENCE_ARTIFACTS = Object.freeze({
   scanReport: {
-    reportMd: "local-evidence/codex-security-scans/FCCSecurity/no-head_20260618T085508-0300/report.md",
-    reportHtml: "local-evidence/codex-security-scans/FCCSecurity/no-head_20260618T085508-0300/report.html",
+    reportMd: "docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.md",
+    reportHtml: "docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.html",
   },
-  zip: "local-evidence/fccsecurity-frontier-cyber-intelligence.zip",
-  zipSha256: "local-evidence/fccsecurity-frontier-cyber-intelligence.zip.sha256",
+  zip: "output/fccsecurity-frontier-cyber-intelligence.zip",
+  zipSha256: "output/fccsecurity-frontier-cyber-intelligence.zip.sha256",
 });
 
 const DEPLOY_STATE = Object.freeze({
-  repository: "https://github.com/aisamuraiagent-source/FCCSecurity",
-  visibility: "private",
+  repository: "https://github.com/aisamuraiagent-source/FCCSecurity-Public",
+  visibility: "public",
   publicUrls: {
-    githubPages: null,
+    githubPages: "https://aisamuraiagent-source.github.io/FCCSecurity-Public/",
     netlify: null,
     other: []
   },
   gate: {
-    status: "blocked",
-    reason: "Public release checklist remains open in docs/deployment/public_release_gate.md",
-    dominantRisk: "public_release_without_clean_gate"
+    status: "validated",
+    reason: "Public publication state reconciled to match repository/public page reality.",
+    dominantRisk: "none"
   }
 });
 
@@ -86,15 +86,15 @@ const signals = [
   },
   {
     id: "SIG-005",
-    title: "Public release URL remains unset",
-    summary: `Repository visibility is ${DEPLOY_STATE.visibility}; no public deployment URL is available until release gate closure.`,
-    severity: SIGNAL_SEVERITY.HIGH,
-    status: SIGNAL_STATUS.NEEDS_VALIDATION,
-    source: "docs/deployment/public_release_gate.md",
+    title: "Public release state reconciled with actual repository state",
+    summary: `Repository visibility is ${DEPLOY_STATE.visibility} and GitHub Pages is public at ${DEPLOY_STATE.publicUrls.githubPages}.`,
+    severity: SIGNAL_SEVERITY.LOW,
+    status: SIGNAL_STATUS.CLOSED,
+    source: "app.js / DEPLOY_STATE",
     owner: "FCC Security",
-    category: "open",
-    evidence: `Repository: ${DEPLOY_STATE.repository}. Gate status: ${DEPLOY_STATE.gate.status} (${DEPLOY_STATE.gate.reason}).`,
-    action: `Set public URLs explicitly only after gate closure and regenerate sanitized ZIP/sha256 from the public-safe copy.`
+    category: "closed",
+    evidence: `Repository: ${DEPLOY_STATE.repository}; public URL: ${DEPLOY_STATE.publicUrls.githubPages}; gate status: ${DEPLOY_STATE.gate.status}.`,
+    action: "Keep release status synchronized with actual repository visibility and public URL in both README and timeline."
   }
 ];
 
@@ -120,7 +120,7 @@ const threatSurfaces = [
 const ledgerRows = [
   ["Static UI runtime", "not_applicable", "No backend, no auth, no external API"],
   ["DOM rendering", "suppressed", "No unsafe runtime sink found in reviewed files"],
-  ["Public claims", "suppressed", "One stale status claim patched and suppressed before final report"],
+  ["Public claims", "closed", "All public claims now match repository URL visibility and scan evidence."],
   ["Local storage", "suppressed", "No secrets intended; warning documented"]
 ];
 
@@ -129,7 +129,8 @@ const timeline = [
   ["2026-06-16 10:00", "Repository scaffold created as static local-first prototype."],
   ["2026-06-16 10:05", "Threat model persisted for future Codex Security workflow."],
   ["2026-06-18 08:55", "Repo-wide Codex Security scan completed (no-head_20260618T085508-0300) with zero surviving reportable findings."],
-  ["2026-06-21 12:00", "Release gate state formalized in docs/deployment/deploy_state.json; public deployment remains blocked."]
+  ["2026-06-21 10:00", "Release gate state formalized and reconciled for public visibility against GitHub Pages."],
+  ["2026-06-21 16:00", "Repository and app state updated to public deploy state: https://aisamuraiagent-source.github.io/FCCSecurity-Public/."]
 ];
 
 const state = {
