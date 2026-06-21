@@ -1,8 +1,16 @@
 # FCC Security
 
-Frontier Cyber Intelligence e um painel local-first para organizar sinais defensivos, threat model, validacao e evidencia operacional com Codex.
+Frontier Cyber Intelligence é um painel local-first para organizar sinais defensivos, threat model, validação e evidência operacional com Codex.
 
-Estado atual: prototipo estatico executavel. Nao ha backend, banco, login, API externa, dependencia de build ou telemetria.
+Estado atual: protótipo estático executável. Não há backend, banco, login, API externa, telemetria, coleta de credenciais ou automação de produção.
+
+## Estado de publicação (reconciliado em 2026-06-21)
+
+- Repositório: https://github.com/aisamuraiagent-source/FCCSecurity-Public
+- Visibilidade: `public`
+- URL pública: https://aisamuraiagent-source.github.io/FCCSecurity-Public/
+- Release state: `validated` para preview estático
+- Nenhum script de bloqueio de deploy (`public_release_gate`, `deploy_state`, `docs/deployment/private...`) é aplicável no repositório público atual.
 
 ## Como executar
 
@@ -18,68 +26,25 @@ Depois acesse:
 http://127.0.0.1:4173/
 ```
 
-## Superficies
+## Superfícies
 
 - `index.html`: estrutura da interface.
 - `styles.css`: sistema visual responsivo.
-- `app.js`: dados locais, estado, filtros, selecao de sinais, ledger e exportacao.
-- `docs/threat-model/threat_model.md`: threat model base para Codex Security.
-- `docs/evidence/implementation_evidence.md`: inventario da primeira entrega.
-- `docs/validation/local_validation.md`: evidencia de validacao local.
+- `app.js`: dados locais, estado, filtros, sinais, ledger e exportação.
+- `docs/threat-model/threat_model.md`: threat model base para revisão defensiva.
+- `docs/validation/local_validation.md`: evidência de validação local.
+- `docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.md`
+- `docs/security-scans/FCCSecurity/no-head_20260618T085508-0300/report.html`
 
-## Codex Security
+## Disclaimer público
 
-O scan repo-wide Codex Security foi executado em 2026-06-18 com cobertura sobre runtime, documentacao, threat model e manifestos de deploy. Resultado final: zero findings reportaveis sobreviventes; uma divergencia documental de status foi corrigida e suprimida antes do relatorio final.
-
-## Disclaimer para publicação
-
-FCC Security is an independent local-first defensive security prototype by Renan Raad. It is not affiliated with, endorsed by, or sponsored by OpenAI. References to Codex or Codex Security describe tools/workflows used during local development and review. The project does not perform external scanning, exploitation, credential collection, malware activity, telemetry, or production monitoring.
-
-Relatorios locais:
-
-```text
-local-evidence/codex-security-scans/FCCSecurity/no-head_20260618T085508-0300/report.md
-local-evidence/codex-security-scans/FCCSecurity/no-head_20260618T085508-0300/report.html
-```
-
-## Pacote local
-
-O pacote estatico de entrega deve ser gerado em:
-
-```text
-local-evidence/fccsecurity-frontier-cyber-intelligence.zip
-```
-
-Manifesto: `docs/deployment/deploy_manifest.md`.
-
-## Estado de publicação
-
-Fonte de verdade: `docs/deployment/deploy_state.json`.
-
-Consulta padrao:
-
-```powershell
-.\scripts\get_deploy_state.ps1
-.\scripts\validate_release_gate.ps1
-.\\scripts\regenerate_release_status_report.ps1
-```
-
-Resultado esperado neste ciclo:
-
-```text
-Repository: https://github.com/aisamuraiagent-source/FCCSecurity
-Visibility: private
-Gate status: open
-Reason: Checklist release block closed by authorized request; publication remains paused until URL reachability checks pass.
-Public URLs: configured (20260621 URL still returns non-reachable status and must return HTTP 200-399)
-```
-
-Estado atual detalhado:
-
-- `docs/deployment/release_status_report.md`
+FCC Security é um projeto local-first defensivo e independente de autor.
+Não há afiliação, endosso, patrocínio ou parceria com OpenAI.
+Referências a Codex/Codex Security descrevem apenas ferramentas e fluxo de revisão usados no desenvolvimento e validação interna.
+Não há escaneamento externo automatizado, exploração, abuso de credenciais, malware ou monitoramento operacional.
 
 ## Limites
 
-- Os dados do painel sao exemplos locais para estruturar fluxo defensivo.
-- Nao existe ingestao automatica de logs ou alertas reais.
-- Nao houve deploy externo nesta etapa.
+- Os dados do painel são exemplos locais para estruturar fluxo defensivo.
+- Não há ingestão automática de logs/alertas reais.
+- Não há deploy externo com persistência além do conteúdo estático publicado no GitHub Pages.
