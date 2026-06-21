@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FCCSecurity-Public Sanitized Security Review</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; margin: 2rem; color: #172026; background: #fff; }
+    main { max-width: 920px; margin: 0 auto; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #d7dde3; padding: .6rem; text-align: left; vertical-align: top; }
+    th { background: #f4f7fa; }
+    code { background: #f4f7fa; padding: .1rem .25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Sanitized Security Review Report</h1>
+  <p><strong>Repository:</strong> <code>FCCSecurity-Public</code></p>
+  <p><strong>Status:</strong> historical public evidence path restored as a sanitized governance reference.</p>
+  <p>This file does not claim a new full code scan, certification, endorsement, or absence of vulnerabilities.</p>
+  <h2>Findings Snapshot</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Severity</th><th>Status</th><th>Summary</th></tr></thead>
+    <tbody>
+      <tr><td>FCCSEC-PUB-001</td><td>MEDIUM</td><td>Mitigated</td><td>README referenced evidence paths that were absent in the public repo.</td></tr>
+      <tr><td>FCCSEC-PUB-002</td><td>MEDIUM</td><td>Mitigated</td><td><code>AGENTS.md</code> defensive governance was absent.</td></tr>
+      <tr><td>FCCSEC-PUB-003</td><td>LOW</td><td>Open</td><td>Static regression checks are proposed but not yet automated.</td></tr>
+      <tr><td>FCCSEC-PUB-004</td><td>LOW</td><td>Open</td><td>Users can still manually paste sensitive data into local-only examples.</td></tr>
+    </tbody>
+  </table>
+  <h2>Residual Risk</h2>
+  <p>Runtime code review and local validation commands remain pending explicit approval.</p>
+</main>
+</body>
+</html>
