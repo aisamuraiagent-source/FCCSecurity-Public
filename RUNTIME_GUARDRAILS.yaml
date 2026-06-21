@@ -1,0 +1,50 @@
+project: FCCSecurity-Public
+mode: public_static_preview
+updated: 2026-06-21
+
+defaults:
+  network: disabled_until_explicit_human_approval
+  writes: disabled_until_explicit_human_approval
+  secrets: never_display_never_log
+  execution: static_analysis_first
+  evidence: sanitized_public_only
+
+risk_classes:
+  low:
+    action: document_and_monitor
+  medium:
+    action: fix_or_record_risk_acceptance
+  high:
+    action: block_merge_or_release_until_validated
+  critical:
+    action: suspend_flow_require_formal_human_review
+
+allowed_runtime_boundary:
+  backend: false
+  database: false
+  login: false
+  external_api: false
+  telemetry: false
+  credential_collection: false
+  production_automation: false
+
+blocked_actions:
+  - public_target_scanning
+  - exploit_execution
+  - credential_capture
+  - token_or_session_abuse
+  - malware_or_persistence
+  - evasion_or_stealth
+  - destructive_commands_without_approval
+  - secret_printing
+  - unsanitized_public_evidence
+
+human_approval_required_for:
+  - network_access
+  - file_modification
+  - command_execution
+  - package_install
+  - ci_cd_change
+  - permission_change
+  - secret_access
+  - delete_or_destructive_action
