@@ -4,7 +4,7 @@
 
 This manifest defines how public evidence is tracked for `FCCSecurity-Public`.
 
-The repository is a public, defensive, local-first cybersecurity portfolio artifact. Evidence in this repository should support bounded claims about validation, remediation, residual risk, and public-release readiness. Evidence must not be treated as certification, external audit, or proof of absence of vulnerabilities.
+The repository is a public, defensive, local-first cybersecurity portfolio artifact. Evidence in this repository should support bounded claims about validation, remediation, residual risk, and public-release readiness. Evidence must not be treated as certification, external audit, or proof that vulnerabilities are absent.
 
 ## Evidence model
 
@@ -83,7 +83,7 @@ This evidence can support that:
 
 This evidence does not prove:
 
-- absence of vulnerabilities;
+- that vulnerabilities are absent;
 - complete security;
 - external audit completion;
 - OpenAI endorsement, partnership, certification, or sponsorship;
@@ -102,4 +102,4 @@ This evidence does not prove:
 
 ## Review rule
 
-Do not close issues #6 through #10 solely because these files exist. Close only after the specific acceptance criteria for each issue have evidence and human review.
+Issues #6 through #10 may be closed only after their specific acceptance criteria have evidence and human review.
