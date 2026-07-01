@@ -19,9 +19,9 @@ REPORT_JSON = OUT / "public_release_gate_report.json"
 REPORT_MD = OUT / "public_release_gate_report.md"
 SHA256SUMS = OUT / "SHA256SUMS"
 
-IGNORE_DIRS = {
+IGNORE_DIR_NAMES = {
     ".git", "node_modules", "vendor", "dist", "build", ".next",
-    ".pytest_cache", "__pycache__", ".venv", "venv", ".github/.cache",
+    ".pytest_cache", "__pycache__", ".venv", "venv", ".cache",
 }
 TEXT_EXTS = {
     "", ".md", ".txt", ".html", ".css", ".js", ".json", ".yml",
@@ -52,6 +52,10 @@ NEGATION_MARKERS = (
     "does not claim", "do not claim", "not claim", "does not prove", "do not prove",
     "not prove", "no guarantee", "not a guarantee", "not represent", "does not represent",
     "without claiming", "avoid phrasing", "avoid language", "out of scope",
+    "proof that vulnerabilities are absent", "that vulnerabilities are absent",
+)
+PRIVATE_EVIDENCE_REDACTION = re.compile(
+    r"(?i)(cyber-command-console|non[-_ ]public[-_ ]evidence|private[-_ ]evidence[-_ ]root|local[-_ ]evidence[-_ ]root|private-evidence/[^\s`'\"<>]*|local-evidence/[^\s`'\"<>]*)"
 )
 
 
@@ -59,9 +63,14 @@ def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
 
 
-def ignored_dir(path: Path) -> bool:
-    r = rel(path) if path != ROOT else ""
-    return r in IGNORE_DIRS or any(r.startswith(d + "/") for d in IGNORE_DIRS)
+def ignored_path(path: Path) -> bool:
+    try:
+        relative = path.relative_to(ROOT)
+    except ValueError:
+        return True
+    if path == OUT or OUT in path.parents:
+        return True
+    return any(part in IGNORE_DIR_NAMES for part in relative.parts)
 
 
 def binary(path: Path) -> bool:
@@ -76,10 +85,10 @@ def binary(path: Path) -> bool:
 def files():
     for root, dirs, names in os.walk(ROOT):
         base = Path(root)
-        dirs[:] = [d for d in dirs if not ignored_dir(base / d)]
+        dirs[:] = [d for d in dirs if not ignored_path(base / d)]
         for name in names:
             path = base / name
-            if path.suffix.lower() not in TEXT_EXTS or binary(path):
+            if ignored_path(path) or path.suffix.lower() not in TEXT_EXTS or binary(path):
                 continue
             yield path
 
@@ -87,7 +96,7 @@ def files():
 def rule_definition(path: Path, line: str) -> bool:
     if path.name != "public_release_gate_check.py":
         return False
-    return any(x in line for x in ("RULES =", "re.compile", "PRIVATE_EVIDENCE_ROOT", "ABSOLUTE_SECURITY_LANGUAGE", "ALLOW_MARKERS", "NEGATION_MARKERS"))
+    return any(x in line for x in ("RULES =", "re.compile", "PRIVATE_EVIDENCE_ROOT", "ABSOLUTE_SECURITY_LANGUAGE", "ALLOW_MARKERS", "NEGATION_MARKERS", "PRIVATE_EVIDENCE_REDACTION"))
 
 
 def allow(path: Path, line: str, rule_id: str) -> bool:
@@ -106,6 +115,7 @@ def clean(line: str) -> str:
     s = re.sub(r"(?i)(api[_-]?key|token|secret|password|passwd|credential)\s*[:=]\s*['\"]?[^\s'\"]+", r"\1=<REDACTED>", s)
     s = re.sub(r"(?i)[A-Z]:\\Users\\[^\s`'\"<>]+", "<LOCAL_USER_PATH_REDACTED>", s)
     s = re.sub(r"(?i)AppData\\(?:Roaming|Local|LocalLow)\\[^\s`'\"<>]+", "<APPDATA_PATH_REDACTED>", s)
+    s = PRIVATE_EVIDENCE_REDACTION.sub("<PRIVATE_OR_LOCAL_EVIDENCE_REDACTED>", s)
     return s[:157] + "..." if len(s) > 160 else s
 
 
@@ -153,7 +163,7 @@ def write(files_scanned: int, findings: list[dict]) -> dict:
         "limitations": [
             "Static pattern review only; not an external audit.",
             "No external targets were scanned.",
-            "No guarantee of absence of vulnerabilities.",
+            "No guarantee that vulnerabilities are absent.",
             "Binary/PDF/image files are skipped unless they are valid text.",
         ],
     }
@@ -177,7 +187,7 @@ def write(files_scanned: int, findings: list[dict]) -> dict:
             f"- File: `{f['file']}`", f"- Line: `{f['line']}`",
             f"- Description: {f['description']}", f"- Sanitized snippet: `{f['snippet']}`", "",
         ]
-    md += ["", "## Limitations", "", "- This is static release-gate evidence, not a certification or external audit.", "- The scanner does not prove absence of vulnerabilities.", "- Reviewers must correlate findings with README claims, evidence manifest, residual risk, and project issues.", ""]
+    md += ["", "## Limitations", "", "- This is static release-gate evidence, not a certification or external audit.", "- The scanner does not prove that vulnerabilities are absent.", "- Reviewers must correlate findings with README claims, evidence manifest, residual risk, and project issues.", ""]
     REPORT_MD.write_text("\n".join(md), encoding="utf-8")
     SHA256SUMS.write_text("".join(f"{sha(p)}  {rel(p)}\n" for p in (REPORT_JSON, REPORT_MD)), encoding="utf-8")
     return report
