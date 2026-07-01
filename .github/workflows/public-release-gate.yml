@@ -1,0 +1,36 @@
+name: Public Release Gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-release-gate:
+    name: Repository-local public release gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run public release gate scanner
+        run: python scripts/public_release_gate_check.py
+
+      - name: Upload release gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-release-gate-evidence
+          path: |
+            evidence/public-release-gate/public_release_gate_report.json
+            evidence/public-release-gate/public_release_gate_report.md
+            evidence/public-release-gate/SHA256SUMS
+          if-no-files-found: warn

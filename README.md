@@ -52,6 +52,17 @@ O pacote canônico de governança fica em `docs/`. Arquivos equivalentes na raiz
 - `docs/PATCH_VALIDATION_REPORT.md`: validação do patch documental.
 - `docs/AUDIT_EVIDENCE_PACK.md`: pacote de evidência auditável e sanitizada.
 
+## Public Release Gate
+
+Este repositório usa um public-release gate para organizar validação, evidência, revisão de risco residual e notas de rollback. O gate é documentação e automação defensiva local; não representa certificação, auditoria externa ou garantia de ausência de vulnerabilidades.
+
+- `docs/FCCSECURITY_PUBLIC_RELEASE_GATE.md`: tracker principal do release gate.
+- `docs/PUBLIC_EVIDENCE_MANIFEST.md`: modelo público de evidência e inventário de artefatos.
+- `docs/RESIDUAL_RISK_NOTE.md`: decisão atual de risco residual e counterevidence.
+- `docs/GITHUB_PROJECT_UI_SETUP.md`: fallback manual para configurar o GitHub Project V2.
+- `.github/workflows/public-release-gate.yml`: workflow local de validação e artefato de evidência.
+- `scripts/public_release_gate_check.py`: scanner defensivo local do release gate.
+
 ## Disclaimer público
 
 FCC Security é um projeto local-first defensivo e independente de autor.
