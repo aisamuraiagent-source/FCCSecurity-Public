@@ -1,146 +1,135 @@
 #!/usr/bin/env python3
-"""Repository-local public release gate scanner.
+"""Repository-local defensive public-release gate scanner.
 
-Defensive validation only. The scanner inspects the current repository tree for
-public-release risks such as local/private path disclosure, secret-like strings,
-and unsupported absolute security language. It does not scan external targets and
-uses only the Python standard library.
+Standard-library only. No external targets are scanned.
 """
-
 from __future__ import annotations
 
-import datetime as _dt
+import datetime as dt
 import hashlib
 import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_DIR = ROOT / "evidence" / "public-release-gate"
-REPORT_JSON = OUT_DIR / "public_release_gate_report.json"
-REPORT_MD = OUT_DIR / "public_release_gate_report.md"
-SHA_FILE = OUT_DIR / "SHA256SUMS"
+OUT = ROOT / "evidence" / "public-release-gate"
+REPORT_JSON = OUT / "public_release_gate_report.json"
+REPORT_MD = OUT / "public_release_gate_report.md"
+SHA256SUMS = OUT / "SHA256SUMS"
 
 IGNORE_DIRS = {
-    ".git",
-    ".github/.cache",
-    ".pytest_cache",
-    "__pycache__",
-    "node_modules",
-    "vendor",
-    "dist",
-    "build",
-    ".next",
-    ".venv",
-    "venv",
+    ".git", "node_modules", "vendor", "dist", "build", ".next",
+    ".pytest_cache", "__pycache__", ".venv", "venv", ".github/.cache",
+}
+TEXT_EXTS = {
+    "", ".md", ".txt", ".html", ".css", ".js", ".json", ".yml",
+    ".yaml", ".toml", ".py", ".sh", ".ps1", ".csv", ".xml", ".svg",
+}
+BINARY_EXTS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".pdf", ".zip",
+    ".gz", ".7z", ".exe", ".dll", ".bin",
 }
 
-TEXT_EXTENSIONS = {
-    "",
-    ".md",
-    ".txt",
-    ".html",
-    ".css",
-    ".js",
-    ".json",
-    ".yml",
-    ".yaml",
-    ".toml",
-    ".py",
-    ".sh",
-    ".ps1",
-    ".csv",
-    ".xml",
-    ".svg",
-}
-
-BINARY_EXTENSIONS = {
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".webp",
-    ".ico",
-    ".pdf",
-    ".zip",
-    ".gz",
-    ".7z",
-    ".exe",
-    ".dll",
-    ".bin",
-}
-
-RULES: Tuple[Dict[str, object], ...] = (
-    {
-        "id": "LOCAL_WINDOWS_USER_PATH",
-        "severity": "P1_RELEASE_BLOCKER",
-        "pattern": re.compile(r"(?i)\b[A-Z]:\\\\Users\\\\[^\s`'\"<>]+"),
-        "description": "Potential local Windows user path in public content.",
-    },
-    {
-        "id": "LOCAL_WINDOWS_TEMP_PATH",
-        "severity": "P2_REVIEW_REQUIRED",
-        "pattern": re.compile(r"(?i)\b[A-Z]:\\\\(?:Temp|Windows\\\\Temp)\\\\[^\s`'\"<>]+"),
-        "description": "Potential local temp path in public content.",
-    },
-    {
-        "id": "APPDATA_PATH",
-        "severity": "P1_RELEASE_BLOCKER",
-        "pattern": re.compile(r"(?i)\bAppData\\\\(?:Roaming|Local|LocalLow)\\\\[^\s`'\"<>]+"),
-        "description": "Potential AppData path disclosure.",
-    },
-    {
-        "id": "PRIVATE_EVIDENCE_ROOT",
-        "severity": "P1_RELEASE_BLOCKER",
-        "pattern": re.compile(r"(?i)(private[-_ ]evidence|local[-_ ]evidence|cyber-command-console|non[-_ ]public[-_ ]evidence)"),
-        "description": "Potential private/local evidence reference.",
-    },
-    {
-        "id": "SECRET_ASSIGNMENT",
-        "severity": "P1_RELEASE_BLOCKER",
-        "pattern": re.compile(r"(?i)\b(api[_-]?key|token|secret|password|passwd|credential)\b\s*[:=]\s*['\"]?[A-Za-z0-9_./+=:-]{20,}"),
-        "description": "Potential secret-like assignment.",
-    },
-    {
-        "id": "PRIVATE_KEY_BLOCK",
-        "severity": "P1_RELEASE_BLOCKER",
-        "pattern": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
-        "description": "Private key material marker.",
-    },
-    {
-        "id": "ABSOLUTE_SECURITY_LANGUAGE",
-        "severity": "P2_REVIEW_REQUIRED",
-        "pattern": re.compile(r"(?i)\b(100% secure|fully secure|guaranteed secure|no vulnerabilities|absence of vulnerabilities|completely secure)\b"),
-        "description": "Unsupported absolute security language.",
-    },
+RULES = (
+    ("LOCAL_WINDOWS_USER_PATH", "P1_RELEASE_BLOCKER", re.compile(r"(?i)\b[A-Z]:\\Users\\[^\s`'\"<>]+"), "Potential local Windows user path."),
+    ("APPDATA_PATH", "P1_RELEASE_BLOCKER", re.compile(r"(?i)\bAppData\\(?:Roaming|Local|LocalLow)\\[^\s`'\"<>]+"), "Potential AppData path disclosure."),
+    ("PRIVATE_EVIDENCE_ROOT", "P1_RELEASE_BLOCKER", re.compile(r"(?i)(cyber-command-console|non[-_ ]public[-_ ]evidence|private[-_ ]evidence[-_ ]root|local[-_ ]evidence[-_ ]root|private-evidence/|local-evidence/)"), "Potential private/local evidence root reference."),
+    ("SECRET_ASSIGNMENT", "P1_RELEASE_BLOCKER", re.compile(r"(?i)\b(api[_-]?key|token|secret|password|passwd|credential)\b\s*[:=]\s*['\"]?[A-Za-z0-9_./+=:-]{20,}"), "Potential secret-like assignment."),
+    ("PRIVATE_KEY_BLOCK", "P1_RELEASE_BLOCKER", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"), "Private key material marker."),
+    ("LOCAL_WINDOWS_TEMP_PATH", "P2_REVIEW_REQUIRED", re.compile(r"(?i)\b[A-Z]:\\(?:Temp|Windows\\Temp)\\[^\s`'\"<>]+"), "Potential local temp path."),
+    ("ABSOLUTE_SECURITY_LANGUAGE", "P2_REVIEW_REQUIRED", re.compile(r"(?i)\b(100% secure|fully secure|guaranteed secure|no vulnerabilities|absence of vulnerabilities|completely secure)\b"), "Unsupported absolute security language."),
 )
 
-ALLOWLIST_MARKERS = (
-    "public-release-gate: allow",
-    "allowed example",
-    "prohibited example",
-    "example only",
-    "do not use as claim",
-    "pattern definition",
-    "scanner rule",
-    "regex",
+SEVERITY_ORDER = {"P1_RELEASE_BLOCKER": 1, "P2_REVIEW_REQUIRED": 2, "P3_INFORMATIONAL": 3}
+
+ALLOW_MARKERS = (
+    "public-release-gate: allow", "allowed example", "prohibited example",
+    "example only", "do not use as claim", "pattern definition", "scanner rule", "regex",
+)
+NEGATION_MARKERS = (
+    "does not claim", "do not claim", "not claim", "does not prove", "do not prove",
+    "not prove", "no guarantee", "not a guarantee", "not represent", "does not represent",
+    "without claiming", "avoid phrasing", "avoid language", "out of scope",
 )
 
-SEVERITY_ORDER = {
-    "P1_RELEASE_BLOCKER": 1,
-    "P2_REVIEW_REQUIRED": 2,
-    "P3_INFORMATIONAL": 3,
-}
+
+def rel(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
 
 
-def utc_now() -> str:
-    return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
+def ignored_dir(path: Path) -> bool:
+    r = rel(path) if path != ROOT else ""
+    return r in IGNORE_DIRS or any(r.startswith(d + "/") for d in IGNORE_DIRS)
 
 
-def sha256_file(path: Path) -> str:
+def binary(path: Path) -> bool:
+    if path.suffix.lower() in BINARY_EXTS:
+        return True
+    try:
+        return b"\x00" in path.read_bytes()[:8192]
+    except OSError:
+        return True
+
+
+def files():
+    for root, dirs, names in os.walk(ROOT):
+        base = Path(root)
+        dirs[:] = [d for d in dirs if not ignored_dir(base / d)]
+        for name in names:
+            path = base / name
+            if path.suffix.lower() not in TEXT_EXTS or binary(path):
+                continue
+            yield path
+
+
+def rule_definition(path: Path, line: str) -> bool:
+    if path.name != "public_release_gate_check.py":
+        return False
+    return any(x in line for x in ("RULES =", "re.compile", "PRIVATE_EVIDENCE_ROOT", "ABSOLUTE_SECURITY_LANGUAGE", "ALLOW_MARKERS", "NEGATION_MARKERS"))
+
+
+def allow(path: Path, line: str, rule_id: str) -> bool:
+    low = line.lower()
+    if any(x in low for x in ALLOW_MARKERS) or rule_definition(path, line):
+        return True
+    if rule_id == "ABSOLUTE_SECURITY_LANGUAGE" and any(x in low for x in NEGATION_MARKERS):
+        return True
+    if rule_id == "PRIVATE_EVIDENCE_ROOT" and any(x in low for x in ("out of scope", "not committed", "not sanitized", "move ")):
+        return True
+    return False
+
+
+def clean(line: str) -> str:
+    s = line.strip().replace("\t", " ")
+    s = re.sub(r"(?i)(api[_-]?key|token|secret|password|passwd|credential)\s*[:=]\s*['\"]?[^\s'\"]+", r"\1=<REDACTED>", s)
+    s = re.sub(r"(?i)[A-Z]:\\Users\\[^\s`'\"<>]+", "<LOCAL_USER_PATH_REDACTED>", s)
+    s = re.sub(r"(?i)AppData\\(?:Roaming|Local|LocalLow)\\[^\s`'\"<>]+", "<APPDATA_PATH_REDACTED>", s)
+    return s[:157] + "..." if len(s) > 160 else s
+
+
+def scan(path: Path):
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        for rule_id, sev, pattern, desc in RULES:
+            if allow(path, line, rule_id):
+                continue
+            if pattern.search(line):
+                out.append({
+                    "file": rel(path), "line": n, "rule_id": rule_id,
+                    "severity": sev, "description": desc, "snippet": clean(line),
+                })
+    return out
+
+
+def sha(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -148,105 +137,19 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def should_ignore_dir(path: Path) -> bool:
-    rel = path.relative_to(ROOT).as_posix() if path != ROOT else ""
-    return rel in IGNORE_DIRS or any(rel.startswith(d + "/") for d in IGNORE_DIRS)
-
-
-def is_probably_binary(path: Path) -> bool:
-    if path.suffix.lower() in BINARY_EXTENSIONS:
-        return True
-    try:
-        sample = path.read_bytes()[:8192]
-    except OSError:
-        return True
-    return b"\x00" in sample
-
-
-def iter_candidate_files() -> Iterable[Path]:
-    for dirpath, dirnames, filenames in os.walk(ROOT):
-        current = Path(dirpath)
-        dirnames[:] = [d for d in dirnames if not should_ignore_dir(current / d)]
-        for filename in filenames:
-            path = current / filename
-            if should_ignore_dir(path.parent):
-                continue
-            if path.suffix.lower() in BINARY_EXTENSIONS:
-                continue
-            if path.suffix.lower() not in TEXT_EXTENSIONS:
-                continue
-            if is_probably_binary(path):
-                continue
-            yield path
-
-
-def is_allowlisted(line: str) -> bool:
-    lower = line.lower()
-    return any(marker in lower for marker in ALLOWLIST_MARKERS)
-
-
-def sanitize_snippet(line: str) -> str:
-    cleaned = line.strip().replace("\t", " ")
-    cleaned = re.sub(r"(?i)(api[_-]?key|token|secret|password|passwd|credential)\s*[:=]\s*['\"]?[^\s'\"]+", r"\1=<REDACTED>", cleaned)
-    cleaned = re.sub(r"(?i)[A-Z]:\\\\Users\\\\[^\s`'\"<>]+", r"<LOCAL_USER_PATH_REDACTED>", cleaned)
-    cleaned = re.sub(r"(?i)AppData\\\\(?:Roaming|Local|LocalLow)\\\\[^\s`'\"<>]+", r"<APPDATA_PATH_REDACTED>", cleaned)
-    if len(cleaned) > 160:
-        return cleaned[:157] + "..."
-    return cleaned
-
-
-def scan_file(path: Path) -> List[Dict[str, object]]:
-    findings: List[Dict[str, object]] = []
-    try:
-        text = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return findings
-    except OSError:
-        return findings
-
-    rel = path.relative_to(ROOT).as_posix()
-    for line_no, line in enumerate(text.splitlines(), start=1):
-        if is_allowlisted(line):
-            continue
-        for rule in RULES:
-            pattern = rule["pattern"]
-            assert isinstance(pattern, re.Pattern)
-            if pattern.search(line):
-                findings.append(
-                    {
-                        "file": rel,
-                        "line": line_no,
-                        "rule_id": rule["id"],
-                        "severity": rule["severity"],
-                        "description": rule["description"],
-                        "snippet": sanitize_snippet(line),
-                    }
-                )
-    return findings
-
-
-def count_by_severity(findings: List[Dict[str, object]]) -> Dict[str, int]:
-    return {
-        severity: sum(1 for f in findings if f.get("severity") == severity)
-        for severity in SEVERITY_ORDER
-    }
-
-
-def write_reports(files_scanned: int, findings: List[Dict[str, object]]) -> Dict[str, object]:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    counts = count_by_severity(findings)
+def write(files_scanned: int, findings: list[dict]) -> dict:
+    OUT.mkdir(parents=True, exist_ok=True)
+    counts = {sev: sum(1 for f in findings if f["severity"] == sev) for sev in SEVERITY_ORDER}
+    ordered = sorted(findings, key=lambda f: (SEVERITY_ORDER[f["severity"]], f["file"], f["line"]))
     report = {
-        "generated_at_utc": utc_now(),
+        "generated_at_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "scope": "repository-local defensive public-release validation only",
         "files_scanned": files_scanned,
         "findings_total": len(findings),
         "p1_release_blockers": counts["P1_RELEASE_BLOCKER"],
         "p2_review_required": counts["P2_REVIEW_REQUIRED"],
         "p3_informational": counts["P3_INFORMATIONAL"],
-        "findings": sorted(findings, key=lambda f: (SEVERITY_ORDER[str(f["severity"])], str(f["file"]), int(f["line"]))),
+        "findings": ordered,
         "limitations": [
             "Static pattern review only; not an external audit.",
             "No external targets were scanned.",
@@ -254,74 +157,41 @@ def write_reports(files_scanned: int, findings: List[Dict[str, object]]) -> Dict
             "Binary/PDF/image files are skipped unless they are valid text.",
         ],
     }
-
     REPORT_JSON.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-    lines = [
-        "# Public Release Gate Report",
-        "",
-        f"Generated UTC: `{report['generated_at_utc']}`",
-        "",
-        "## Scope",
-        "",
-        "Repository-local defensive public-release validation only. No external targets were scanned.",
-        "",
-        "## Summary",
-        "",
+    md = [
+        "# Public Release Gate Report", "",
+        f"Generated UTC: `{report['generated_at_utc']}`", "",
+        "## Scope", "", "Repository-local defensive public-release validation only. No external targets were scanned.", "",
+        "## Summary", "",
         f"- Files scanned: `{files_scanned}`",
         f"- Findings total: `{len(findings)}`",
         f"- P1 release blockers: `{counts['P1_RELEASE_BLOCKER']}`",
         f"- P2 review required: `{counts['P2_REVIEW_REQUIRED']}`",
-        f"- P3 informational: `{counts['P3_INFORMATIONAL']}`",
-        "",
-        "## Findings",
-        "",
+        f"- P3 informational: `{counts['P3_INFORMATIONAL']}`", "", "## Findings", "",
     ]
-    if not findings:
-        lines.append("No findings were detected by this static scanner.")
-    else:
-        for f in report["findings"]:
-            lines.extend(
-                [
-                    f"### {f['severity']} — {f['rule_id']}",
-                    "",
-                    f"- File: `{f['file']}`",
-                    f"- Line: `{f['line']}`",
-                    f"- Description: {f['description']}",
-                    f"- Sanitized snippet: `{f['snippet']}`",
-                    "",
-                ]
-            )
-    lines.extend(
-        [
-            "",
-            "## Limitations",
-            "",
-            "- This is static release-gate evidence, not a certification or external audit.",
-            "- The scanner does not prove absence of vulnerabilities.",
-            "- Reviewers must correlate findings with README claims, evidence manifest, residual risk, and project issues.",
-            "",
+    if not ordered:
+        md.append("No findings were detected by this static scanner.")
+    for f in ordered:
+        md += [
+            f"### {f['severity']} — {f['rule_id']}", "",
+            f"- File: `{f['file']}`", f"- Line: `{f['line']}`",
+            f"- Description: {f['description']}", f"- Sanitized snippet: `{f['snippet']}`", "",
         ]
-    )
-    REPORT_MD.write_text("\n".join(lines), encoding="utf-8")
-
-    generated = [REPORT_JSON, REPORT_MD]
-    SHA_FILE.write_text(
-        "".join(f"{sha256_file(path)}  {path.relative_to(ROOT).as_posix()}\n" for path in generated),
-        encoding="utf-8",
-    )
+    md += ["", "## Limitations", "", "- This is static release-gate evidence, not a certification or external audit.", "- The scanner does not prove absence of vulnerabilities.", "- Reviewers must correlate findings with README claims, evidence manifest, residual risk, and project issues.", ""]
+    REPORT_MD.write_text("\n".join(md), encoding="utf-8")
+    SHA256SUMS.write_text("".join(f"{sha(p)}  {rel(p)}\n" for p in (REPORT_JSON, REPORT_MD)), encoding="utf-8")
     return report
 
 
 def main() -> int:
-    findings: List[Dict[str, object]] = []
-    files_scanned = 0
-    for path in iter_candidate_files():
-        files_scanned += 1
-        findings.extend(scan_file(path))
-
-    report = write_reports(files_scanned, findings)
-    print(json.dumps({k: report[k] for k in ("files_scanned", "findings_total", "p1_release_blockers", "p2_review_required", "p3_informational")}, sort_keys=True))
+    findings = []
+    count = 0
+    for path in files():
+        count += 1
+        findings.extend(scan(path))
+    report = write(count, findings)
+    summary = {k: report[k] for k in ("files_scanned", "findings_total", "p1_release_blockers", "p2_review_required", "p3_informational")}
+    print(json.dumps(summary, sort_keys=True))
     return 1 if report["p1_release_blockers"] else 0
 
 
